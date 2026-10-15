@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>PGPG: Progress-Guided Preference Generation</title>
+  <meta name="description" content="PGPG turns progress against a few expert demonstrations into preference labels for a policy's own rollouts, and aligns diffusion, flow-matching and VLA policies without human annotation or reward engineering. CoRL 2026." />
+  <meta property="og:title" content="Progress-Guided Preference Generation for Aligning Generative Control Policies" />
+  <meta property="og:description" content="Unsupervised preference alignment for generative robot policies: progress-guided labels from a few demonstrations, no human in the loop. CoRL 2026." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/overview.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%236a4fd4'/%3E%3Crect%20x='12'%20y='5'%20width='9'%20height='22'%20rx='1.5'%20fill='%23fff'%20opacity='.22'/%3E%3Cpath%20d='M5%2024C10%2024%2011%2022%2014%2018S20%209%2026%208'%20fill='none'%20stroke='%23fff'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3Ccircle%20cx='26'%20cy='8'%20r='3.4'%20fill='%23fb6544'%20stroke='%23fff'%20stroke-width='1.2'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="progress"></div>
+
+  <nav class="side-nav" aria-label="Contents">
+    <div class="cap">Contents</div>
+    <ol>
+      <li><a href="#abstract"><span>01</span>Abstract</a></li>
+      <li><a href="#method"><span>02</span>Method</a></li>
+      <li><a href="#robomimic"><span>03</span>Robomimic</a></li>
+      <li><a href="#vla"><span>04</span>VLA</a></li>
+      <li><a href="#analysis"><span>05</span>Analysis</a></li>
+      <li><a href="#citation"><span>06</span>Citation</a></li>
+    </ol>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="chips">
+        <span class="chip hot">CoRL 2026</span>
+        <span class="chip">Preference alignment</span>
+        <span class="chip">Diffusion &amp; flow policies</span>
+        <span class="chip">No human labels</span>
+      </div>
+      <h1>
+        <span class="acr">PGPG</span>: Progress-Guided Preference Generation
+        <span class="sub">for aligning <b>generative control policies</b></span>
+      </h1>
+      <p class="authors">
+        <span>Tung M. Luu<sup>1</sup></span>,
+        <span>Tri Ton<sup>1</sup></span>,
+        <span>Duc M. Nguyen<sup>2,3</sup></span>,
+        <span>Xuan Thanh Nguyen<sup>1</sup></span>,
+        <span>Nguyen Gia Binh<sup>2,3</sup></span>,
+        <span>Quang Tan Nguyen<sup>3</sup></span>,
+        <span>Vu Duong<sup>2</sup></span>,
+        <span>Daniel Sonntag<sup>6,7</sup></span>,
+        <span>Duy M. H. Nguyen<sup>4,5,6</sup></span>,
+        <span>Vien Anh Ngo<sup>2,3</sup></span>,
+        <span>Chang D. Yoo<sup>1</sup></span>
+      </p>
+      <p class="affils">
+        <span><sup>1</sup>KAIST</span>
+        <span><sup>2</sup>Center for AI Research &amp; CECS, VinUniversity</span>
+        <span><sup>3</sup>VinRobotics</span>
+        <span><sup>4</sup>University of Stuttgart</span>
+        <span><sup>5</sup>Max Planck Research School for Intelligent Systems</span>
+        <span><sup>6</sup>DFKI</span>
+        <span><sup>7</sup>University of Oldenburg</span>
+      </p>
+      <p class="venue">Conference on Robot Learning (CoRL) 2026, Austin, TX</p>
+      <div class="links">
+        <!-- Add the PDF or arXiv link here once it is public, and drop the "off" class. -->
+        <a class="btn off" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          Paper (soon)
+        </a>
+        <a class="btn" href="https://github.com/tunglm2203/pgpg" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+          Code
+        </a>
+        <a class="btn ghost" href="#method">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20c4 0 5-2 7-6s4-9 11-9"/><path d="M8 4v16M15 4v16" opacity=".45"/></svg>
+          Interactive demo
+        </a>
+        <a class="btn ghost" href="#citation">BibTeX</a>
+      </div>
+
+      <div class="stats reveal">
+        <div class="stat"><div class="n">74.5<small>+37.3</small></div><div class="l">Robomimic 5-task average, Diffusion Policy (37.2 before fine-tuning)</div></div>
+        <div class="stat"><div class="n">76.7<small>+33.2</small></div><div class="l">Robomimic 5-task average, flow-matching policy (43.5 before)</div></div>
+        <div class="stat"><div class="n">72.1<small>+21.5</small></div><div class="l">LIBERO-10 average, GR00T N1.7 VLA with 5 demos per task (50.5 pretrained)</div></div>
+        <div class="stat"><div class="n">31&times;</div><div class="l">Faster progress scoring than the Robometer reward model: 0.087 s vs 2.691 s per trajectory</div></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="wrap reveal">
+      <figure class="card pad">
+        <picture>
+          <source srcset="assets/overview.webp" type="image/webp" />
+          <img src="assets/overview.jpg" width="2000" height="998" alt="PGPG overview: rollouts and demonstrations are scored by ordered coverage alignment, marginal progress scoring and multi-demonstration aggregation; the resulting preferred and rejected segments form a preference dataset that fine-tunes the policy." />
+        </picture>
+        <figcaption><b>Overview of PGPG.</b> Rollouts (<i>D</i><sub>rollout</sub>) are scored against expert references (<i>D</i><sub>demo</sub>) by ordered coverage alignment, marginal progress scoring and multi-demonstration aggregation. The segment scores become preference labels (<i>D</i><sub>pref</sub>) that fine-tune the generative policy <i>&pi;<sub>&theta;</sub></i>(<i>a</i>|<i>s</i>), with no hand-designed reward.</figcaption>
+      </figure>
+    </section>
+
+    <section id="abstract" class="wrap">
+      <div class="sec-head reveal">
+        <div class="kicker">01 &middot; Abstract</div>
+        <h2>Rollouts are cheap, preference labels are not. A few demonstrations can do the labeling.</h2>
+      </div>
+      <div class="lede reveal">
+        <p>Diffusion and flow-matching policies imitate experts well, but they are held back by how few expert demonstrations exist. Preference-based fine-tuning can learn from the policy's own imperfect rollouts instead. The catch is that someone has to say which rollout segment is better, and human preference labels are expensive.</p>
+        <p><b>Progress-Guided Preference Generation (PGPG)</b> takes the human out of that loop. It measures how far each rollout segment advances, in order, relative to a small set of expert demonstrations, and turns that progress into pseudo-preference labels for contrastive preference learning. There are no annotators and no reward engineering. PGPG outperforms supervised fine-tuning baselines on five long-horizon Robomimic tasks with both diffusion and flow-matching policies, and it also fine-tunes a 3B-parameter GR00T N1.7 VLA on LIBERO-10.</p>
+      </div>
+    </section>
+
+    <section id="method" class="wrap">
+      <div class="sec-head reveal">
+        <div class="kicker">02 &middot; Method</div>
+        <h2>Inside one preference label: coverage, margin, max</h2>
+      </div>
+      <p class="lede reveal" style="margin-bottom:22px">Two rollouts, three expert demonstrations, one segment cut from each rollout. The toy task below runs the paper's equations live in your browser. Pick a case, drag the &sigma; windows on the timeline or change the threshold <i>&epsilon;<sub>&sigma;</sub></i>, and watch the label change.</p>
+
+      <div class="card viewer reveal" id="lab">
+        <div class="vhead">
+          <div class="tabs" id="lab-tabs" style="margin:0"></div>
+          <div class="vtask"><span class="chip hot" id="lab-cat">Double counting</span><span id="lab-desc" class="muted"></span></div>
+        </div>
+        <div class="vbody">
+          <div class="vstage">
+            <canvas id="lab-canvas" tabindex="0" aria-label="Toy workspace with expert demonstrations and two rollouts, and below it the progress of each rollout over time with the two segment windows. Drag a window to move it; with the canvas focused, the arrow keys move the selected window and the 1 and 2 keys select it."></canvas>
+            <div class="vbadge" id="lab-t">t = 0</div>
+            <div class="vphase cover" id="lab-phase">Ordered coverage</div>
+          </div>
+          <aside class="vside">
+            <ol class="steps" id="lab-steps">
+              <li data-k="cover"><span class="i">1</span><span>Ordered coverage: progress <span data-tex="\hat r_t"><i>r</i><sub>t</sub></span> of each rollout against each demo</span></li>
+              <li data-k="margin"><span class="i">2</span><span>Marginal progress inside each segment</span></li>
+              <li data-k="max"><span class="i">3</span><span>Max over the <i>M</i> reference demos</span></li>
+              <li data-k="label"><span class="i">4</span><span>Compare, drop the pair if the gap is below <i>&epsilon;<sub>&sigma;</sub></i></span></li>
+              <li data-k="cpl"><span class="i">5</span><span>Add the pair to <i>D</i><sub>pref</sub> and fine-tune with CPL</span></li>
+            </ol>
+            <div class="eq" id="lab-eq"></div>
+            <div>
+              <div class="vlabel">Segment scores <span class="muted">per reference demo</span></div>
+              <div class="scores" id="lab-scores"></div>
+            </div>
+            <div>
+              <div class="vlabel">Label <span class="muted" id="lab-gap"></span></div>
+              <div class="dm" id="lab-dm">
+                <div class="track"><div class="dead" id="lab-dead"></div><div class="zero"></div><div class="mk" id="lab-mk" style="left:50%"></div></div>
+                <div class="ends"><span>&larr; &sigma;<sub>2</sub> preferred</span><span>&sigma;<sub>1</sub> preferred &rarr;</span></div>
+                <div class="out" id="lab-out">&ndash;</div>
+                <div class="naive" id="lab-naive"></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div class="legend">
+          <span class="li"><i style="background:var(--demo)"></i><span>Expert demo <span data-tex="\tilde\tau_m">&tau;<sub>m</sub></span></span></span>
+          <span class="li"><i style="background:var(--roll)"></i><span>Rollout &tau;<sub>1</sub></span></span>
+          <span class="li"><i style="background:var(--lav)"></i><span>Rollout &tau;<sub>2</sub></span></span>
+          <span class="li"><i class="band" style="background:var(--win-tint);border:1.5px solid var(--win)"></i><span>Preferred &sigma;<sup>w</sup></span></span>
+          <span class="li"><i class="band" style="background:var(--lose-tint);border:1.5px solid var(--lose)"></i><span>Rejected &sigma;<sup>l</sup></span></span>
+          <span class="li"><i class="dot" style="background:linear-gradient(90deg,var(--roll) 50%,var(--lav) 50%)"></i><span>Subgoal covered</span></span>
+          <span class="muted">Drag the &sigma; windows on the timeline</span>
+        </div>
+        <div class="controls">
+          <button class="ctl on" id="lab-play" aria-label="Play or pause"><svg viewBox="0 0 24 24" fill="currentColor" id="lab-play-ico"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg><span>Pause</span></button>
+          <button class="ctl" id="lab-next"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l9 7-9 7zM16 5h3v14h-3z"/></svg>Next stage</button>
+          <div class="seg" id="lab-speed"><button data-s="0.5">0.5&times;</button><button data-s="1" class="on">1&times;</button><button data-s="2">2&times;</button></div>
+          <input type="range" id="lab-scrub" class="scrub" min="0" max="1000" value="0" aria-label="Rollout time step" />
+          <button class="ctl on" id="lab-max" aria-pressed="true" title="Score each segment against all three demos and keep the max"><span class="box"></span>Max over 3 demos</button>
+          <button class="ctl" id="lab-naive-btn" aria-pressed="false" title="Show the naive score: the sum of the cumulative progress inside the window"><span class="box"></span>Naive sum</button>
+          <label class="slider"><span><i>&epsilon;<sub>&sigma;</sub></i></span><input type="range" id="lab-eps" min="0" max="0.5" step="0.01" value="0.1" /><output id="lab-eps-v">0.10</output></label>
+        </div>
+      </div>
+      <p class="note">A toy 2-D task. Positions stand in for observations: the paper computes the same quantities on R3M embeddings of camera frames, with cosine distance and an adaptive temperature. The scale of <i>&epsilon;<sub>&sigma;</sub></i> here belongs to the toy; the paper searches 0.3 to 0.6.</p>
+
+      <div class="pillars">
+        <div class="pillar a reveal">
+          <canvas class="pill-cv" data-anim="cover" aria-hidden="true"></canvas>
+          <div class="k">Step 1 &middot; Progress</div>
+          <h3>Ordered Coverage Alignment</h3>
+          <p>ORCA scores a trajectory against an expert demonstration by the probability that it has covered the demonstration's subgoals in order. It is indifferent to execution speed, it gives no credit for skipping ahead, and covered subgoals stay covered, so the score is a running measure of progress rather than a per-step reward.</p>
+        </div>
+        <div class="pillar b reveal">
+          <canvas class="pill-cv" data-anim="margin" aria-hidden="true"></canvas>
+          <div class="k">Step 2 &middot; Scoring</div>
+          <h3>Marginal Progress Scoring</h3>
+          <p>Summing a cumulative score over a segment counts earlier progress again at every step. PGPG scores a segment by the progress made inside it, which telescopes to <span data-tex="\hat r_{t+L}-\hat r_t"><i>r</i><sub>t+L</sub>&nbsp;&minus;&nbsp;<i>r</i><sub>t</sub></span>, and drops pairs whose scores differ by less than <i>&epsilon;<sub>&sigma;</sub></i>.</p>
+        </div>
+        <div class="pillar c reveal">
+          <canvas class="pill-cv" data-anim="max" aria-hidden="true"></canvas>
+          <div class="k">Step 3 &middot; Aggregation</div>
+          <h3>Multi-Demonstration Aggregation</h3>
+          <p>A rollout may solve the task in a different but equally valid way. PGPG scores each segment against <i>M</i> reference demonstrations and keeps the max, so a segment earns credit for matching any expert mode, even when the rollout switches modes along the way.</p>
+        </div>
+      </div>
+      <p class="note">Sketches after the three panels at the bottom of Fig. 1. The frames come from the figure; the alignments and scores drawn on them are illustrative.</p>
+
+      <figure class="card pad reveal mt">
+        <div class="grid2" style="align-items:start">
+          <div class="algo">
+            <div class="cap">Algorithm 1 &middot; PGPG</div>
+            <div class="inp"><b>Input:</b> demonstrations <span data-tex="\mathcal{D}_{\text{demo}}"><i>D</i><sub>demo</sub></span>, rollouts <span data-tex="\mathcal{D}_{\text{rollout}}"><i>D</i><sub>rollout</sub></span>, number of references <i>M</i>, number of queries <i>N</i>, threshold <span data-tex="\epsilon_\sigma"><i>&epsilon;<sub>&sigma;</sub></i></span>, pretrained policy <span data-tex="\pi_\theta"><i>&pi;<sub>&theta;</sub></i></span></div>
+            <ol>
+              <li><span>pick references <span data-tex="\{\tilde\tau_m\}_{m=1}^{M}\subset\mathcal{D}_{\text{demo}}">{&tau;&#771;<sub>m</sub>} &sub; D<sub>demo</sub></span>, <span data-tex="\mathcal{D}\leftarrow\mathcal{D}_{\text{demo}}\cup\mathcal{D}_{\text{rollout}}">D &larr; D<sub>demo</sub> &cup; D<sub>rollout</sub></span></span></li>
+              <li><span>score every <span data-tex="\tau\in\mathcal{D}">&tau; &isin; D</span> with ORCA against each <span data-tex="\tilde\tau_m">&tau;&#771;<sub>m</sub></span> <span class="cm">&#9655; Eq. 2</span></span></li>
+              <li><span><span class="kw">for</span> <i>i</i> = 1 &hellip; <i>N</i> <span class="kw">do</span></span></li>
+              <li class="in1"><span>sample segments <span data-tex="(\sigma_1,\sigma_2)\sim\hat{\mathcal{D}}">(&sigma;<sub>1</sub>, &sigma;<sub>2</sub>) ~ D&#770;</span></span></li>
+              <li class="in1"><span><span data-tex="R(\sigma)\leftarrow\max_m\,\hat r^{\,m}_{t+L}-\hat r^{\,m}_{t}">R(&sigma;) &larr; max<sub>m</sub> r&#770;<sub>t+L</sub> &minus; r&#770;<sub>t</sub></span> for both <span class="cm">&#9655; Eq. 4, 6</span></span></li>
+              <li class="in1"><span><span class="kw">if</span> <span data-tex="|R(\sigma_1)-R(\sigma_2)|>\epsilon_\sigma">|R(&sigma;<sub>1</sub>) &minus; R(&sigma;<sub>2</sub>)| &gt; &epsilon;<sub>&sigma;</sub></span> <span class="kw">then</span></span></li>
+              <li class="in2"><span><span data-tex="\mathcal{D}_{\text{pref}}\leftarrow\mathcal{D}_{\text{pref}}\cup\{(\sigma^w,\sigma^l)\}">D<sub>pref</sub> &larr; D<sub>pref</sub> &cup; {(&sigma;<sup>w</sup>, &sigma;<sup>l</sup>)}</span> <span class="cm">&#9655; Eq. 5</span></span></li>
+              <li><span>fine-tune <span data-tex="\pi_\theta">&pi;<sub>&theta;</sub></span> on <span data-tex="\mathcal{D}_{\text{pref}}">D<sub>pref</sub></span> with CPL <span class="cm">&#9655; Eq. 1</span></span></li>
+            </ol>
+          </div>
+          <div>
+            <div class="kicker" style="color:var(--brand)">Fine-tuning</div>
+            <h3 style="font-size:26px;margin:8px 0 4px">Contrastive preference learning on the generated pairs</h3>
+            <div class="eqcard" data-tex-display="\begin{aligned}\mathcal{L}_{\text{CPL}}(\theta)=-\log\sigma\Big(\alpha\Big[&\sum_{t=1}^{L}\gamma^{t}\log\frac{\pi_\theta(\mathbf{a}^w_t\mid\mathbf{s}^w_t)}{\pi_{\text{ref}}(\mathbf{a}^w_t\mid\mathbf{s}^w_t)}\\&-\sum_{t=1}^{L}\gamma^{t}\log\frac{\pi_\theta(\mathbf{a}^l_t\mid\mathbf{s}^l_t)}{\pi_{\text{ref}}(\mathbf{a}^l_t\mid\mathbf{s}^l_t)}\Big]\Big)\end{aligned}">L<sub>CPL</sub>(&theta;) = &minus;log &sigma;(&alpha;[&Sigma; &gamma;<sup>t</sup> log &pi;<sub>&theta;</sub>/&pi;<sub>ref</sub> on &sigma;<sup>w</sup> &minus; &Sigma; &gamma;<sup>t</sup> log &pi;<sub>&theta;</sub>/&pi;<sub>ref</sub> on &sigma;<sup>l</sup>])</div>
+            <p class="muted small" style="margin:0">The labeled pairs fine-tune the pretrained policy with CPL, which raises the likelihood of the preferred segment relative to the reference policy and lowers that of the rejected one, without a reward model. For a diffusion policy the log-likelihood ratio becomes a difference in noise-prediction error against the reference policy; for a flow policy, a difference in velocity-prediction error.</p>
+          </div>
+        </div>
+        <div class="pairstrip" aria-label="A preferred and a rejected segment from the Square task, from Fig. 1 of the paper">
+          <div class="grp w"><div class="tag"><b>&sigma;<sup>w</sup></b><span>preferred</span></div><img src="assets/frames/win1.jpg" alt="" /><img src="assets/frames/win2.jpg" alt="" /><img src="assets/frames/win3.jpg" alt="Preferred segment: the nut goes down onto the peg" /></div>
+          <div class="grp l"><div class="tag"><b>&sigma;<sup>l</sup></b><span>rejected</span></div><img src="assets/frames/lose1.jpg" alt="" /><img src="assets/frames/lose2.jpg" alt="" /><img src="assets/frames/lose3.jpg" alt="Rejected segment: the nut ends up tilted at the peg" /></div>
+        </div>
+        <figcaption>A preferred and a rejected segment of the Square task, as in Fig. 1 of the paper. PGPG makes such pairs from autonomous rollouts without anyone labeling them.</figcaption>
+      </figure>
+    </section>
+
+    <section id="robomimic" class="wrap">
+      <div class="sec-head reveal">
+        <div class="kicker">03 &middot; Robomimic</div>
+        <h2>Five manipulation tasks, two kinds of generative policy</h2>
+      </div>
+      <p class="muted reveal small" style="max-width:860px;margin:-6px 0 18px">Each pretrained policy starts at about 40% success and collects 500 rollouts. PGPG labels segments of these rollouts and of about 120 retained demonstrations (80 for ToolHang), with 10 to 40 demonstrations as references, then fine-tunes with CPL. All policies act from low-dimensional states; only PGPG's labeler looks at camera images. Baselines marked <span class="priv">&dagger;</span> use privileged information. Success rate over 50 episodes and three seeds.</p>
+      <div class="card pad reveal">
+        <div class="tabs" id="rm-tabs"></div>
+        <div class="cmprow"><span>Compare PGPG with</span><div class="seg" id="rm-cmp"></div></div>
+        <div class="keyrow"><span><i style="background:var(--faint);opacity:.55"></i><span id="rm-key">Base policy</span></span><span><i style="background:var(--brand)"></i>PGPG</span><span class="muted" id="rm-what"></span></div>
+        <div class="bars" id="rm-bars"></div>
+        <details>
+          <summary>Full results with standard deviations</summary>
+          <div class="tbl-wrap" id="rm-table"></div>
+        </details>
+      </div>
+      <p class="muted reveal" style="margin-top:14px;font-size:15px">PGPG has the best average with both policy classes. Where the benchmark has dense rewards (Lift, Can, Square) it matches the reward-labeled CPL<sub>KL</sub>, except on Square with the flow policy. On the sparse-reward Transport and ToolHang it beats CPL<sub>KL</sub> by 12.7 to 26.7 points: a sparse reward gives most segment pairs nearly the same score, while progress still tells them apart.</p>
+
+      <div class="grid2 mt">
+        <div class="reveal">
+          <h3 style="font-size:24px;margin-bottom:6px">Other ways to make the labels</h3>
+          <p class="muted" style="margin:0 0 12px;font-size:14.5px">Same pipeline and fine-tuning; only the source of the labels changes. CLIP (per frame) and S3D (per clip) score how well the observations match the task description, and Robometer is a learned progress reward model. None of them checks that subgoals are completed in order.</p>
+          <div class="card pad">
+            <div class="tabs" id="ls-tabs"></div>
+            <div class="bars" id="ls-bars"></div>
+          </div>
+        </div>
+        <div class="reveal">
+          <h3 style="font-size:24px;margin-bottom:6px">The cost of a progress label</h3>
+          <p class="muted" style="margin:0 0 12px;font-size:14.5px">Average wall-clock time to compute the progress rewards of one trajectory, over 50 rollouts. ORCA is a lightweight dynamic program over R3M features; a progress reward model runs heavy network inference on every rollout.</p>
+          <div class="card pad">
+            <div class="cost" id="cost">
+              <div class="big">31&times;<small>faster than Robometer</small></div>
+              <div class="crow"><div class="lab">Robometer</div><div class="track"><div class="b" data-w="100"><span class="v">2.691 s</span></div></div></div>
+              <div class="crow ours"><div class="lab"><b>PGPG</b></div><div class="track"><div class="b" data-w="3.23"><span class="v">0.087 s</span></div></div></div>
+              <p class="muted" style="margin:0;font-size:13.5px">And the labels are better: averaged over the five tasks, fine-tuning on Robometer labels reaches 44.7% success, on PGPG labels 74.5%.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <details class="reveal">
+        <summary>Full comparison of label sources, per task</summary>
+        <div class="tbl-wrap" id="ls-table"></div>
+      </details>
+    </section>
+
+    <section id="vla" class="wrap">
+      <div class="sec-head reveal">
+        <div class="kicker">04 &middot; VLA</div>
+        <h2>Beyond single-task policies: GR00T N1.7 on LIBERO-10</h2>
+      </div>
+      <div class="aspects reveal">
+        <div class="aspect"><div class="k">Multi-task</div><div class="n">10 tasks <small>one policy</small></div><p>Preferences are generated per task against that task's own demonstrations, then pooled into one fine-tuning run, with no task-specific models or hyperparameters.</p></div>
+        <div class="aspect"><div class="k">Pretrained VLA</div><div class="n">3B <small>parameters</small></div><p>A vision-language backbone conditions a flow-matching action head. PGPG only needs that head's flow-matching loss in place of the log-likelihood, so nothing in the architecture changes.</p></div>
+        <div class="aspect"><div class="k">Few-shot</div><div class="n">5 + 20 <small>demos + rollouts per task</small></div><p>Compared with about 120 demonstrations and 500 rollouts per task on Robomimic.</p></div>
+      </div>
+      <div class="card vla reveal">
+        <div class="left">
+          <div class="cmprow" style="margin-top:0"><span>Compare PGPG with</span><div class="seg" id="vla-cmp"></div></div>
+          <div class="keyrow"><span><i style="background:var(--faint);opacity:.55"></i><span id="vla-key">Pretrained</span></span><span><i style="background:var(--brand)"></i>PGPG</span><span class="muted">Click a task to see it</span></div>
+          <div class="bars" id="vla-bars"></div>
+        </div>
+        <div class="right">
+          <div class="vtask" style="justify-content:space-between">
+            <span class="chip hot" id="vt-id">T1</span>
+            <div class="tnav"><button class="ctl" id="vt-prev" aria-label="Previous task">&lsaquo;</button><button class="ctl" id="vt-next" aria-label="Next task">&rsaquo;</button></div>
+          </div>
+          <p class="tinstr" id="vt-instr"></p>
+          <div class="film" id="vt-film"></div>
+          <div class="filmax"><span>initial state</span><span>one of the five expert demos</span><span>task complete</span></div>
+          <div class="tnums" id="vt-nums"></div>
+        </div>
+      </div>
+      <p class="muted reveal" style="margin-top:14px;font-size:15px">PGPG raises the average success from 50.5% to 72.1%, against 64.8% for Filtered BC, and is best on seven of the ten tasks, with the largest gains on T1 (18.0 &rarr; 64.7), T8 (40.0 &rarr; 84.0) and T2 (58.0 &rarr; 94.7). Filtered BC, which relies on the simulator's success signal to select rollouts, is better on T5 and T6. Neither method solves T9, where none of the 20 rollouts of the pretrained policy succeeded.</p>
+      <p class="note reveal">Labels: ORCA on R3M features of the third-person camera, 160-step segments, 5,000 demo-vs-rollout and 5,000 rollout-vs-rollout queries per task, 47,878 pairs kept. Only the action head is fine-tuned, with CPL<sub>KL</sub>. Success over 50 episodes per task and three seeds.</p>
+    </section>
+
+    <section id="analysis" class="wrap">
+      <div class="sec-head reveal">
+        <div class="kicker">05 &middot; Analysis</div>
+        <h2>What makes the labels work</h2>
+      </div>
+      <div class="grid2">
+        <div class="card pad reveal">
+          <h3 class="ttl">Marginal scoring needs ordered coverage</h3>
+          <p class="sub">Labels from three sequence-matching metrics, each with its raw cumulative score or with marginal progress scoring (MPS). MPS gives large, consistent gains only on top of ORCA, whose score grows with the number of subgoals covered in order.</p>
+          <div class="tabs" id="mt-tabs"></div>
+          <div class="keyrow"><span><i style="background:var(--faint);opacity:.55"></i>Cumulative score</span><span><i style="background:var(--brand)"></i>+ MPS</span></div>
+          <div class="bars" id="mt-bars"></div>
+        </div>
+        <div class="card pad reveal">
+          <h3 class="ttl">Accurate labels or many labels</h3>
+          <p class="sub">Lift, diffusion policy. A larger threshold <i>&epsilon;<sub>&sigma;</sub></i> drops ambiguous pairs: label accuracy against ground-truth preferences rises while fewer pairs remain. Policy success peaks at <i>&epsilon;<sub>&sigma;</sub></i> = 0.6 and collapses at 0.95.</p>
+          <div class="lchart" id="eps-chart"></div>
+          <div class="lc-ctl"><span><i>&epsilon;<sub>&sigma;</sub></i></span><input type="range" id="eps-in" min="0" max="10" step="1" value="6" aria-label="Discrimination threshold" /><output id="eps-out">0.6</output></div>
+          <div class="lc-read" id="eps-read"></div>
+        </div>
+      </div>
+      <div class="grid2 mt">
+        <div class="card pad reveal">
+          <h3 class="ttl">How many reference demonstrations?</h3>
+          <p class="sub">Number of expert demonstrations used to generate the labels. Success rises quickly from 1 to 10 and saturates after 10 to 20.</p>
+          <div class="keyrow"><span><i style="background:var(--teal)"></i>Lift</span><span><i style="background:var(--brand)"></i>Square</span><span class="muted">error bars: std over seeds</span></div>
+          <div id="nd-cols"></div>
+        </div>
+        <div class="card pad reveal">
+          <h3 class="ttl">More ablations</h3>
+          <p class="sub" id="ab-sub"></p>
+          <div class="tabs" id="ab-tabs"></div>
+          <div class="tbl-wrap" id="ab-table"></div>
+        </div>
+      </div>
+      <div class="limits reveal">
+        <div class="kicker">Limitations</div>
+        <ul>
+          <li>PGPG relies on the robustness of the pretrained visual encoder that the progress is computed on.</li>
+          <li>Visual sequence matching can be misled under heavy occlusion; richer sensing such as depth or touch could help.</li>
+          <li>Marginal progress scoring assumes largely monotonic progress, so long-horizon tasks that need deliberate backtracking may be scored poorly.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="citation" class="wrap">
+      <div class="sec-head reveal">
+        <div class="kicker">06 &middot; Citation</div>
+        <h2>BibTeX</h2>
+      </div>
+      <pre class="bib reveal" id="bib"><button class="ctl copy" id="copy">Copy</button>@inproceedings{luu2026pgpg,
+  title     = {Progress-Guided Preference Generation for Aligning Generative Control Policies},
+  author    = {Luu, Tung M. and Ton, Tri and Nguyen, Duc M. and Nguyen, Xuan Thanh and
+               Nguyen, Gia Binh and Nguyen, Quang Tan and Duong, Vu and Sonntag, Daniel and
+               Nguyen, Duy M. H. and Ngo, Vien Anh and Yoo, Chang D.},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  year      = {2026}
+}</pre>
+      <p class="ack reveal"><b>Acknowledgements.</b> This work was supported by the Institute of Information &amp; Communications Technology Planning &amp; Evaluation (IITP) grant funded by the Korea government (MSIT) (No. RS-2021-II211381, Development of Causal AI through Video Understanding and Reinforcement Learning, and Its Applications to Real Environments) and the National Research Foundation of Korea (NRF) grant funded by the Korea government (MSIT) (RS-2025-24742969, Intelligent Robotic System using Continual Learning and Multimodal Language Model based Multi Attribute Feedback). Duy M. H. Nguyen and Daniel Sonntag also acknowledge the support of the Federal Ministry of Research, Technology, and Space (BMFTR) under grant number 16IW26002 (AMENABLE), the Lower Saxony Ministry of Science and Culture (MWK) in the Zukunft.niedersachsen program, and the Endowed Chair of AAI at the University of Oldenburg.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">Progress-Guided Preference Generation for Aligning Generative Control Policies &middot; CoRL 2026.</div>
+  </footer>
+
+  <script defer src="page.js"></script>
+  <script defer src="results.js"></script>
+  <script defer src="lab.js"></script>
+  <script defer src="pillars.js"></script>
+</body>
+</html>
