@@ -20,10 +20,12 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | `assets/` | `overview.jpg/.webp` (rendered from `figs/overview.pdf`), `frames/` (Square frames from Fig. 1), `libero/` (LIBERO-10 frames from the appendix figure), `rollouts/` (LIBERO-10 evaluation videos, below) |
 
 `assets/rollouts/tNN_{base,fbc,pgpg}.mp4` are evaluation episodes of the GR00T N1.7 checkpoints of the paper's
-LIBERO-10 table (pretrained, Filtered BC, PGPG) on tasks T3 to T8, copied unchanged from the eval logs, with the
-first frame as `.jpg` poster. In each task the three episodes start from the same initial state (same eval seed and
-shard, matching first frames) and all succeed. Each video is 512 x 256, third-person | wrist camera, 20 fps, with the
-instruction burned in from row 218 down; the page crops to the top 216 rows.
+LIBERO-10 table (pretrained, Filtered BC, PGPG), copied unchanged from the eval logs, with the first frame as `.jpg`
+poster. They cover the seven tasks where PGPG beats both baselines (T1, T2, T3, T4, T7, T8, T10): per task, a failed
+episode of the pretrained policy and of Filtered BC and a successful one of PGPG, picked as the triple with the most
+similar first frames over the three eval seeds (identical in T1 and T10). Each video is 512 x 256, third-person | wrist
+camera, 20 fps (failures run to the 720-step limit, 18 s), with the instruction burned in from row 218 down; the page
+crops to the top 216 rows.
 
 Fig. 3 of the paper has no printed values, so its bars were decoded from the vector PDF; they match the
 plotted bars to 0.1 and the paper's earlier results table exactly.

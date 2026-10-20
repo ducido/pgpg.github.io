@@ -311,8 +311,8 @@
       <p class="note reveal">Labels: ORCA on R3M features of the third-person camera, 160-step segments, 5,000 demo-vs-rollout and 5,000 rollout-vs-rollout queries per task, 47,878 pairs kept. Only the action head is fine-tuned, with CPL<sub>KL</sub>. Success over 50 episodes per task and three seeds.</p>
 
       <div class="mt reveal">
-        <h3 style="font-size:24px;margin-bottom:6px">Same start, three policies</h3>
-        <p class="muted" style="margin:0 0 12px;font-size:14.5px">Evaluation episodes of the pretrained policy, Filtered BC and PGPG, all three started from the same initial state. Pick a task; the three videos play together.</p>
+        <h3 style="font-size:24px;margin-bottom:6px">Where only PGPG finishes</h3>
+        <p class="muted" style="margin:0 0 12px;font-size:14.5px">Evaluation episodes of the pretrained policy, Filtered BC and PGPG from similar initial states, on the seven tasks where PGPG beats both. The two baselines run into the 720-step limit; PGPG completes the task. Pick a task; the three videos start together.</p>
         <div class="card pad ro" id="ro">
           <div class="tabs" id="ro-tabs"></div>
           <p class="tinstr" id="ro-instr"></p>
@@ -320,10 +320,11 @@
           <div class="ro-ctl">
             <button class="ctl on" id="ro-play" aria-label="Play or pause"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg><span>Pause</span></button>
             <button class="ctl" id="ro-restart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>Restart together</button>
+            <div class="seg" id="ro-speed"></div>
             <div class="seg" id="ro-view"></div>
           </div>
         </div>
-        <p class="note">Episodes picked where all three policies succeed from one initial state (same evaluation seed, identical first frame), to compare how they solve the task; the success rates above each video are over all 150 evaluation episodes of the task. &dagger; Filtered BC selects rollouts with the simulator's success signal.</p>
+        <p class="note">Hand-picked from the evaluation videos of the checkpoints in the table above, to show how the baselines fail; they are not a random sample. The starts are identical in T1 and T10 and close elsewhere (object positions vary slightly between evaluation seeds). The success rates above each video are over all 150 evaluation episodes of the task. &dagger; Filtered BC selects rollouts with the simulator's success signal.</p>
       </div>
     </section>
 

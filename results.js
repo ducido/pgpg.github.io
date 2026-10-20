@@ -273,30 +273,43 @@
     pick(0);
   }
 
-  // ---------- evaluation rollouts from one initial state ----------
-  // One successful episode per policy, all three from the same initial state (same eval seed and shard;
-  // the first frames match): assets/rollouts/tNN_{base,fbc,pgpg}.mp4, with the first frame as poster.
+  // ---------- evaluation rollouts: only PGPG finishes ----------
+  // Per task one episode of each policy from similar initial states (identical in T1 and T10) in which the
+  // pretrained policy and Filtered BC fail and PGPG succeeds: assets/rollouts/tNN_{base,fbc,pgpg}.mp4, with
+  // the first frame as poster. Each video plays once and holds its last frame and outcome; once all three
+  // have ended they start again together.
   {
     const card = $("ro"), grid = $("ro-grid"), playBtn = $("ro-play");
-    const RO = ["T3", "T4", "T5", "T6", "T7", "T8"].map((id) => LIB.find((t) => t[0] === id));
-    const POL = [["base", "Pretrained", 3], ["fbc", 'Filtered BC <span class="priv">&dagger;</span>', 4], ["pgpg", "PGPG", 5]];
-    grid.innerHTML = POL.map(([k, n]) => `<div class="ro-v${k === "pgpg" ? " ours" : ""}"><div class="ro-hd"><span>${n}</span><span class="v"></span></div>
-      <div class="ro-frame"><video muted loop playsinline preload="none" width="512" height="256"></video></div></div>`).join("");
-    const vids = [...grid.querySelectorAll("video")], vals = grid.querySelectorAll(".ro-hd .v");
-    vids.forEach((v) => { v.muted = true; });
-    // the videos play only while the card is on screen, and not on their own under reduced motion
-    let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches, inView = false;
-    const run = () => vids.forEach((v) => (playing && inView ? v.play().catch(() => {}) : v.pause()));
+    const RO = ["T1", "T2", "T3", "T4", "T7", "T8", "T10"].map((id) => LIB.find((t) => t[0] === id));
+    const POL = [["base", "Pretrained", 3, false], ["fbc", 'Filtered BC <span class="priv">&dagger;</span>', 4, false], ["pgpg", "PGPG", 5, true]];
+    grid.innerHTML = POL.map(([k, n, , ok]) => `<div class="ro-v${k === "pgpg" ? " ours" : ""}"><div class="ro-hd"><span>${n}</span><span class="v"></span></div>
+      <div class="ro-frame"><video muted playsinline preload="none" width="512" height="256"></video>
+      <span class="ro-badge ${ok ? "ok" : "fail"}">${ok ? "&check; task completed" : "&cross; time limit, not completed"}</span></div></div>`).join("");
+    const boxes = [...grid.querySelectorAll(".ro-v")], vids = boxes.map((b) => b.querySelector("video"));
+    const vals = grid.querySelectorAll(".ro-hd .v");
+    let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches, inView = false, rate = 1, again = 0;
+    // videos play only while the card is on screen, and not on their own under reduced motion
+    const run = () => vids.forEach((v) => (playing && inView && !v.ended ? v.play().catch(() => {}) : v.pause()));
+    const resume = () => (vids.every((v) => v.ended) ? restart() : run());
     function restart() {
-      vids.forEach((v) => { v.currentTime = 0; });
+      clearTimeout(again);
+      boxes.forEach((b) => b.classList.remove("done"));
+      vids.forEach((v) => { v.currentTime = 0; v.defaultPlaybackRate = v.playbackRate = rate; });
       run();
     }
+    vids.forEach((v, j) => {
+      v.muted = true;
+      v.addEventListener("ended", () => {
+        boxes[j].classList.add("done");
+        if (vids.every((w) => w.ended)) again = setTimeout(() => { if (playing && inView) restart(); }, 2500);
+      });
+    });
     function setPlaying(p) {
       playing = p;
       playBtn.classList.toggle("on", p);
       playBtn.querySelector("span").textContent = p ? "Pause" : "Play";
       playBtn.querySelector("path").setAttribute("d", p ? "M6 5h4v14H6zM14 5h4v14h-4z" : "M7 5l12 7-12 7z");
-      run();
+      resume();
     }
     function show(i) {
       const t = RO[i], f = `assets/rollouts/t${t[0].slice(1).padStart(2, "0")}`;
@@ -304,16 +317,17 @@
       vids.forEach((v, j) => {
         v.poster = `${f}_${POL[j][0]}.jpg`;
         v.src = `${f}_${POL[j][0]}.mp4`;
-        v.setAttribute("aria-label", `${["Pretrained", "Filtered BC", "PGPG"][j]}, ${t[0]}: ${t[2]}`);
+        v.setAttribute("aria-label", `${["Pretrained", "Filtered BC", "PGPG"][j]} ${POL[j][3] ? "completes" : "fails"} ${t[0]}: ${t[2]}`);
       });
       vals.forEach((s, j) => { s.textContent = `${fmt(t[POL[j][2]][0])}% on ${t[0]}`; });
       restart();
     }
     tabs($("ro-tabs"), RO.map((t) => ({ html: `${t[0]} <small>${t[1]}</small>`, title: t[2] })), show);
+    tabs($("ro-speed"), ["1&times;", "2&times;"], (i) => { rate = i + 1; vids.forEach((v) => { v.defaultPlaybackRate = v.playbackRate = rate; }); }, "");
     tabs($("ro-view"), ["Scene", "Scene + wrist"], (i) => card.classList.toggle("both", i === 1), "");
     playBtn.onclick = () => setPlaying(!playing);
     $("ro-restart").onclick = () => { setPlaying(true); restart(); };
-    new IntersectionObserver((es) => { inView = es[es.length - 1].isIntersecting; run(); }, { threshold: 0.25 }).observe(card);
+    new IntersectionObserver((es) => { inView = es[es.length - 1].isIntersecting; resume(); }, { threshold: 0.25 }).observe(card);
     show(0);
     setPlaying(playing);
   }

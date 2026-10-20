@@ -358,7 +358,7 @@ details summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-
 .tn .v { font: 500 12px var(--mono); text-align: right; }
 .tn.ours { font-weight: 600; } .tn.ours .v { color: var(--brand); font-weight: 700; }
 .tnav { display: flex; gap: 6px; margin-left: auto; }
-/* evaluation rollouts from one initial state. The videos are 512 x 256 (third-person | wrist camera) with the
+/* evaluation rollouts from similar initial states. The videos are 512 x 256 (third-person | wrist camera) with the
    instruction burned in from row 218 down, so the frame shows the top 216 rows and, by default, the left half */
 .tab small { font-size: 12px; opacity: 0.7; }
 .ro .tinstr { min-height: 0; margin: -4px 0 0; }
@@ -373,8 +373,13 @@ details summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-
 .ro-frame video { position: absolute; left: 0; top: 0; width: 200%; height: auto; display: block; }
 .ro.both .ro-frame { aspect-ratio: 512 / 216; }
 .ro.both .ro-frame video { width: 100%; }
+.ro-badge { position: absolute; left: 8px; top: 8px; font: 600 11.5px var(--mono); color: #fff; padding: 3px 9px; border-radius: 999px;
+  opacity: 0; transform: translateY(-4px); transition: opacity 0.3s, transform 0.3s; }
+.ro-badge.ok { background: rgba(63, 143, 47, 0.94); }
+.ro-badge.fail { background: rgba(192, 0, 0, 0.9); }
+.ro-v.done .ro-badge { opacity: 1; transform: none; }
 .ro-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
-.ro-ctl .seg { margin-left: auto; }
+.ro-ctl #ro-speed { margin-left: auto; }
 .ro-ctl .seg button { font: 500 12.5px var(--sans); padding: 6px 11px; }
 
 /* line chart: label accuracy against retention */
