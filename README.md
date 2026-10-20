@@ -17,7 +17,13 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | `results.js` | Every number on the page, with its source in the paper, and the interactive charts |
 | `lab.js` | The preference lab: a toy 2-D task that runs ORCA (Eq. 2), marginal scoring (Eq. 3-4), max over demos (Eq. 6) and the threshold (Eq. 5) live |
 | `pillars.js` | The three animated method sketches, after the panels of Fig. 1 |
-| `assets/` | `overview.jpg/.webp` (rendered from `figs/overview.pdf`), `frames/` (Square frames from Fig. 1), `libero/` (LIBERO-10 frames from the appendix figure) |
+| `assets/` | `overview.jpg/.webp` (rendered from `figs/overview.pdf`), `frames/` (Square frames from Fig. 1), `libero/` (LIBERO-10 frames from the appendix figure), `rollouts/` (LIBERO-10 evaluation videos, below) |
+
+`assets/rollouts/tNN_{base,fbc,pgpg}.mp4` are evaluation episodes of the GR00T N1.7 checkpoints of the paper's
+LIBERO-10 table (pretrained, Filtered BC, PGPG) on tasks T3 to T8, copied unchanged from the eval logs, with the
+first frame as `.jpg` poster. In each task the three episodes start from the same initial state (same eval seed and
+shard, matching first frames) and all succeed. Each video is 512 x 256, third-person | wrist camera, 20 fps, with the
+instruction burned in from row 218 down; the page crops to the top 216 rows.
 
 Fig. 3 of the paper has no printed values, so its bars were decoded from the vector PDF; they match the
 plotted bars to 0.1 and the paper's earlier results table exactly.

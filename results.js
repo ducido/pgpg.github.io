@@ -273,6 +273,51 @@
     pick(0);
   }
 
+  // ---------- evaluation rollouts from one initial state ----------
+  // One successful episode per policy, all three from the same initial state (same eval seed and shard;
+  // the first frames match): assets/rollouts/tNN_{base,fbc,pgpg}.mp4, with the first frame as poster.
+  {
+    const card = $("ro"), grid = $("ro-grid"), playBtn = $("ro-play");
+    const RO = ["T3", "T4", "T5", "T6", "T7", "T8"].map((id) => LIB.find((t) => t[0] === id));
+    const POL = [["base", "Pretrained", 3], ["fbc", 'Filtered BC <span class="priv">&dagger;</span>', 4], ["pgpg", "PGPG", 5]];
+    grid.innerHTML = POL.map(([k, n]) => `<div class="ro-v${k === "pgpg" ? " ours" : ""}"><div class="ro-hd"><span>${n}</span><span class="v"></span></div>
+      <div class="ro-frame"><video muted loop playsinline preload="none" width="512" height="256"></video></div></div>`).join("");
+    const vids = [...grid.querySelectorAll("video")], vals = grid.querySelectorAll(".ro-hd .v");
+    vids.forEach((v) => { v.muted = true; });
+    // the videos play only while the card is on screen, and not on their own under reduced motion
+    let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches, inView = false;
+    const run = () => vids.forEach((v) => (playing && inView ? v.play().catch(() => {}) : v.pause()));
+    function restart() {
+      vids.forEach((v) => { v.currentTime = 0; });
+      run();
+    }
+    function setPlaying(p) {
+      playing = p;
+      playBtn.classList.toggle("on", p);
+      playBtn.querySelector("span").textContent = p ? "Pause" : "Play";
+      playBtn.querySelector("path").setAttribute("d", p ? "M6 5h4v14H6zM14 5h4v14h-4z" : "M7 5l12 7-12 7z");
+      run();
+    }
+    function show(i) {
+      const t = RO[i], f = `assets/rollouts/t${t[0].slice(1).padStart(2, "0")}`;
+      $("ro-instr").textContent = "“" + t[2].charAt(0).toUpperCase() + t[2].slice(1) + "”";
+      vids.forEach((v, j) => {
+        v.poster = `${f}_${POL[j][0]}.jpg`;
+        v.src = `${f}_${POL[j][0]}.mp4`;
+        v.setAttribute("aria-label", `${["Pretrained", "Filtered BC", "PGPG"][j]}, ${t[0]}: ${t[2]}`);
+      });
+      vals.forEach((s, j) => { s.textContent = `${fmt(t[POL[j][2]][0])}% on ${t[0]}`; });
+      restart();
+    }
+    tabs($("ro-tabs"), RO.map((t) => ({ html: `${t[0]} <small>${t[1]}</small>`, title: t[2] })), show);
+    tabs($("ro-view"), ["Scene", "Scene + wrist"], (i) => card.classList.toggle("both", i === 1), "");
+    playBtn.onclick = () => setPlaying(!playing);
+    $("ro-restart").onclick = () => { setPlaying(true); restart(); };
+    new IntersectionObserver((es) => { inView = es[es.length - 1].isIntersecting; run(); }, { threshold: 0.25 }).observe(card);
+    show(0);
+    setPlaying(playing);
+  }
+
   // ---------- sequence-matching metric x marginal scoring, Table 1 ----------
   {
     const host = $("mt-bars");
